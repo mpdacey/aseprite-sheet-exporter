@@ -20,6 +20,7 @@ end
 --end
 
 function decodeFileIntoTable(path)
+
     local pathToJsonfile = io.open(path, "r")
     local contentAsString = pathToJsonfile:read("*all")  -- *all is one of the arguments of read()
     pathToJsonfile:close()
@@ -28,14 +29,15 @@ function decodeFileIntoTable(path)
     
 end
 
-function exportFunc(scaleFactor, jsonWrite)
+function exportFunc(scaleFactor, jsonWrite, sheetType)
+
     for i,tag in ipairs(spr.tags) do   -- is like python's enumerate
         local fn = path  .. title .. '_' .. tag.name 
 
         if jsonWrite then
             app.command.ExportSpriteSheet{
                 ui = false,
-                type = SpriteSheetType.HORIZONTAL,
+                type = sheetType,
                 textureFilename = fn .. '.png',
                 dataFilename = fn .. '.json',
                 dataFormat = SpriteSheetDataFormat.JSON_ARRAY,
@@ -48,7 +50,7 @@ function exportFunc(scaleFactor, jsonWrite)
         else
             app.command.ExportSpriteSheet{
                 ui = false,
-                type = SpriteSheetType.HORIZONTAL,
+                type = sheetType,
                 textureFilename = fn .. '.png',
                 filenameFormat = "{tag}_{frame}.{extension}",
                 tag = tag.name,
@@ -96,6 +98,8 @@ function exportFunc(scaleFactor, jsonWrite)
                 
                 v["sourceSize"]["w"] = v["sourceSize"]["w"] * scaleFactor
                 v["sourceSize"]["h"] = v["sourceSize"]["h"] * scaleFactor
+
+                            
             end
         
             -- 4. save the json with those updated values
@@ -106,12 +110,37 @@ function exportFunc(scaleFactor, jsonWrite)
             newFile.write(newFile, json_as_string)
             newFile.close(newFile)
         end
+      
     end
+    
 end
+
+
 
 -- UI
 
 local dlg = Dialog{ title="Scalar sheet exporter" }
+local sheetTypeValue = SpriteSheetType.HORIZONTAL
+
+dlg:combobox{
+    id="sheetType",
+    label="Sheet Type: ",
+    option="Horizontal Strip",
+    options={"Horizontal Strip", "Vertical Strip", "By Rows", "By Columns", "Packed"},
+    onchange=function ()
+        if dlg.data.sheetType == "Horizontal Strip" then
+            sheetTypeValue = SpriteSheetType.HORIZONTAL
+        elseif dlg.data.sheetType == "Vertical Strip" then
+            sheetTypeValue = SpriteSheetType.VERTICAL
+        elseif dlg.data.sheetType == "By Rows" then
+            sheetTypeValue = SpriteSheetType.ROWS
+        elseif dlg.data.sheetType == "By Columns" then
+            sheetTypeValue = SpriteSheetType.COLUMNS
+        elseif dlg.data.sheetType == "Packed" then
+            sheetTypeValue = SpriteSheetType.PACKED
+        end
+    end
+}
 
 dlg:number {
     id="scaleId",
@@ -130,7 +159,7 @@ dlg:button {
     text="Save sheets",
     onclick=function()
         local dlgData = dlg.data
-        exportFunc(dlgData.scaleId, dlgData.jsonWrite)
+        exportFunc(dlgData.scaleId, dlgData.jsonWrite, sheetTypeValue)
     end
 }
 
