@@ -20,7 +20,6 @@ end
 --end
 
 function decodeFileIntoTable(path)
-
     local pathToJsonfile = io.open(path, "r")
     local contentAsString = pathToJsonfile:read("*all")  -- *all is one of the arguments of read()
     pathToJsonfile:close()
@@ -29,23 +28,36 @@ function decodeFileIntoTable(path)
     
 end
 
-
-function exportFunc(scaleFactor)
-
+function exportFunc(scaleFactor, jsonWrite)
     for i,tag in ipairs(spr.tags) do   -- is like python's enumerate
-        local fn = path  .. title .. '_' .. tag.name .. '_sheet' 
-        app.command.ExportSpriteSheet{
-        ui = false,
-        type = SpriteSheetType.HORIZONTAL,
-        textureFilename = fn .. '.png',
-        dataFilename = fn .. '.json',
-        dataFormat = SpriteSheetDataFormat.JSON_ARRAY,
-        filenameFormat = "{tag}_{frame}.{extension}",
-        tag = tag.name,
-        listLayers = false,
-        listTags = false,
-        listSlices = false
-        }
+        local fn = path  .. title .. '_' .. tag.name 
+
+        if jsonWrite then
+            app.command.ExportSpriteSheet{
+                ui = false,
+                type = SpriteSheetType.HORIZONTAL,
+                textureFilename = fn .. '.png',
+                dataFilename = fn .. '.json',
+                dataFormat = SpriteSheetDataFormat.JSON_ARRAY,
+                filenameFormat = "{tag}_{frame}.{extension}",
+                tag = tag.name,
+                listLayers = false,
+                listTags = false,
+                listSlices = false
+            }
+        else
+            app.command.ExportSpriteSheet{
+                ui = false,
+                type = SpriteSheetType.HORIZONTAL,
+                textureFilename = fn .. '.png',
+                filenameFormat = "{tag}_{frame}.{extension}",
+                tag = tag.name,
+                listLayers = false,
+                listTags = false,
+                listSlices = false
+            }
+        end
+        
 
         -- ##########################################################################
         -- scale png sheets (open as Aseprite file, resize and close)
@@ -64,43 +76,38 @@ function exportFunc(scaleFactor)
         -- scale json sheets (decode saved json and multiply the "frame" key values by the scale)
         -- ##########################################################################
         
-        -- 1. get all the values of the key "frame". Those are dicts containing "frame" key
-        local dataTable = decodeFileIntoTable(fn .. '.json')
-        local framesKeyTable = dataTable["frames"]
+        if jsonWrite then
+            -- 1. get all the values of the key "frame". Those are dicts containing "frame" key
+            local dataTable = decodeFileIntoTable(fn .. '.json')
+            local framesKeyTable = dataTable["frames"]
+            
+            -- 2. get all the values of the key "frame", which are x, y, w and h, multiply them by the scale
+            -- (also multiply any other related keys)
+            for k, v in pairs(framesKeyTable) do
+                v["frame"]["x"] = v["frame"]["x"] * scaleFactor
+                v["frame"]["y"] = v["frame"]["y"] * scaleFactor
+                v["frame"]["w"] = v["frame"]["w"] * scaleFactor
+                v["frame"]["h"] = v["frame"]["h"] * scaleFactor
+                
+                v["spriteSourceSize"]["x"] = v["spriteSourceSize"]["x"] * scaleFactor
+                v["spriteSourceSize"]["y"] = v["spriteSourceSize"]["y"] * scaleFactor
+                v["spriteSourceSize"]["w"] = v["spriteSourceSize"]["w"] * scaleFactor
+                v["spriteSourceSize"]["h"] = v["spriteSourceSize"]["h"] * scaleFactor
+                
+                v["sourceSize"]["w"] = v["sourceSize"]["w"] * scaleFactor
+                v["sourceSize"]["h"] = v["sourceSize"]["h"] * scaleFactor
+            end
         
-        -- 2. get all the values of the key "frame", which are x, y, w and h, multiply them by the scale
-        -- (also multiply any other related keys)
-        for k, v in pairs(framesKeyTable) do
-            v["frame"]["x"] = v["frame"]["x"] * scaleFactor
-            v["frame"]["y"] = v["frame"]["y"] * scaleFactor
-            v["frame"]["w"] = v["frame"]["w"] * scaleFactor
-            v["frame"]["h"] = v["frame"]["h"] * scaleFactor
+            -- 4. save the json with those updated values
+            local json_as_string = json.encode_pretty(json, dataTable)
             
-            v["spriteSourceSize"]["x"] = v["spriteSourceSize"]["x"] * scaleFactor
-            v["spriteSourceSize"]["y"] = v["spriteSourceSize"]["y"] * scaleFactor
-            v["spriteSourceSize"]["w"] = v["spriteSourceSize"]["w"] * scaleFactor
-            v["spriteSourceSize"]["h"] = v["spriteSourceSize"]["h"] * scaleFactor
-            
-            v["sourceSize"]["w"] = v["sourceSize"]["w"] * scaleFactor
-            v["sourceSize"]["h"] = v["sourceSize"]["h"] * scaleFactor
-
-                        
+            local myFilePath= fn .. '.json'
+            local newFile = io.open(myFilePath, "w")  -- "w" for writing mode
+            newFile.write(newFile, json_as_string)
+            newFile.close(newFile)
         end
-        
-        
-        -- 4. save the json with those updated values
-        local json_as_string = json.encode_pretty(json, dataTable)
-        
-        local myFilePath= fn .. '.json'
-        local newFile = io.open(myFilePath, "w")  -- "w" for writing mode
-        newFile.write(newFile, json_as_string)
-        newFile.close(newFile)
-      
     end
-    
 end
-
-
 
 -- UI
 
@@ -113,23 +120,18 @@ dlg:number {
     decimals=integer
 }
 
+dlg:check {
+    id="jsonWrite",
+    label="Save JSON: "
+}
+
 dlg:button {
     id="myButtonId",
     text="Save sheets",
     onclick=function()
         local dlgData = dlg.data
-        exportFunc(dlgData.scaleId)
+        exportFunc(dlgData.scaleId, dlgData.jsonWrite)
     end
 }
 
-
 dlg:show()
-
-
-
-
-
-
-
-
-
