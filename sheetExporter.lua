@@ -29,8 +29,8 @@ function decodeFileIntoTable(path)
     
 end
 
-function exportFunc(scaleFactor, jsonWrite, sheetType)
 
+function exportFunc(scaleFactor, jsonWrite, sheetType, cellCount, cellSize)
     for i,tag in ipairs(spr.tags) do   -- is like python's enumerate
         local fn = path  .. title .. '_' .. tag.name 
 
@@ -38,6 +38,10 @@ function exportFunc(scaleFactor, jsonWrite, sheetType)
             app.command.ExportSpriteSheet{
                 ui = false,
                 type = sheetType,
+                rows = cellCount[0],
+                columns = cellCount[1],
+                width = cellSize[0],
+                height = cellSize[1],
                 textureFilename = fn .. '.png',
                 dataFilename = fn .. '.json',
                 dataFormat = SpriteSheetDataFormat.JSON_ARRAY,
@@ -51,6 +55,10 @@ function exportFunc(scaleFactor, jsonWrite, sheetType)
             app.command.ExportSpriteSheet{
                 ui = false,
                 type = sheetType,
+                rows = cellCount[0],
+                columns = cellCount[1],
+                width = cellSize[0],
+                height = cellSize[1],
                 textureFilename = fn .. '.png',
                 filenameFormat = "{tag}_{frame}.{extension}",
                 tag = tag.name,
@@ -114,8 +122,6 @@ function exportFunc(scaleFactor, jsonWrite, sheetType)
     end
     
 end
-
-
 
 -- UI
 
@@ -215,7 +221,23 @@ dlg:button {
     text="Save sheets",
     onclick=function()
         local dlgData = dlg.data
-        exportFunc(dlgData.scaleId, dlgData.jsonWrite, sheetTypeValue)
+        local cellCount = {}
+        local cellSize = {}
+
+        if dlgData.constraints == "Fixed # of Rows" then
+            cellCount[0] = dlgData.rowCount
+        elseif dlgData.constraints == "Fixed # of Columns" then
+            cellCount[1] = dlgData.columnCount
+        elseif dlgData.constraints == "Fixed Width" then
+            cellSize[0] = dlgData.sizeX
+        elseif dlgData.constraints == "Fixed Height" then
+            cellSize[1] = dlgData.sizeY
+        elseif dlgData.constraints == "Fixed Size" then
+            cellSize[0] = dlgData.sizeX
+            cellSize[1] = dlgData.sizeY
+        end
+
+        exportFunc(dlgData.scaleId, dlgData.jsonWrite, sheetTypeValue, cellCount, cellSize)
     end
 }
 
