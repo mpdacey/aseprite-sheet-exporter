@@ -128,6 +128,8 @@ end
 local dlg = Dialog{ title="Scalar sheet exporter" }
 local sheetTypeValue = SpriteSheetType.HORIZONTAL
 
+dlg:tab {id = "tabLayout", text = "Layout"}
+
 dlg:combobox{
     id="sheetType",
     label="Sheet Type: ",
@@ -203,7 +205,9 @@ dlg:number {
     decimals=integer,
     visible=false
 }
-dlg:newrow()
+
+dlg:tab {id = "tabSprite", text = "Sprite"}
+
 dlg:number {
     id="scaleId",
     label="Scale: ",
@@ -211,9 +215,16 @@ dlg:number {
     decimals=integer
 }
 
+dlg:tab {id = "tabOutput", text = "Output"}
+
 dlg:check {
     id="jsonWrite",
-    label="Save JSON: "
+    label="JSON Data: "
+}
+
+dlg:endtabs{
+    selected = "tabLayout",
+    align = integer
 }
 
 dlg:button {
