@@ -272,4 +272,11 @@ dlg:button {
     end
 }
 
+dlg:button {
+    text="Cancel",
+    onclick=function ()
+        dlg:close()
+    end
+}
+
 dlg:show()
