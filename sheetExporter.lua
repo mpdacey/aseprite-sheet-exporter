@@ -249,7 +249,7 @@ dlg:endtabs{
 
 dlg:button {
     id="myButtonId",
-    text="Save sheets",
+    text="Export Sheets",
     onclick=function()
         local dlgData = dlg.data
         local cellCount = {}
