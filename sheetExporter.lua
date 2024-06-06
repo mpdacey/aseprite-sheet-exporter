@@ -30,70 +30,65 @@ function decodeFileIntoTable(path)
 end
 
 
-function exportFunc(scaleFactor, jsonWrite, sheetType, cellCount, cellSize, filePath)
-    local root = path .. title
-    if filePath then
-        root = filePath
+function exportFunc(scaleFactor, sheetType, cellCount, cellSize, imageCheck, imagePath, jsonCheck, jsonPath)
+    if not imagePath or imagePath == title then
+        imagePath = path .. title
+    end
+
+    if not jsonPath or jsonPath == title then
+        jsonPath = path .. title
     end
 
     for i,tag in ipairs(spr.tags) do   -- is like python's enumerate
-        local fn = root .. '_' .. tag.name 
+        local imageFileName = nil
+        local jsonFileName = nil
 
-        if jsonWrite then
-            app.command.ExportSpriteSheet{
-                ui = false,
-                type = sheetType,
-                rows = cellCount[0],
-                columns = cellCount[1],
-                width = cellSize[0],
-                height = cellSize[1],
-                textureFilename = fn .. '.png',
-                dataFilename = fn .. '.json',
-                dataFormat = SpriteSheetDataFormat.JSON_ARRAY,
-                filenameFormat = "{tag}_{frame}.{extension}",
-                tag = tag.name,
-                listLayers = false,
-                listTags = false,
-                listSlices = false
-            }
-        else
-            app.command.ExportSpriteSheet{
-                ui = false,
-                type = sheetType,
-                rows = cellCount[0],
-                columns = cellCount[1],
-                width = cellSize[0],
-                height = cellSize[1],
-                textureFilename = fn .. '.png',
-                filenameFormat = "{tag}_{frame}.{extension}",
-                tag = tag.name,
-                listLayers = false,
-                listTags = false,
-                listSlices = false
-            }
+        if imageCheck then
+            imageFileName = imagePath .. '_' .. tag.name .. '.png'
         end
-        
 
+        if jsonCheck then
+            jsonFileName = jsonPath .. '_' .. tag.name  .. '.json'
+        end
+
+        app.command.ExportSpriteSheet{
+            ui = false,
+            type = sheetType,
+            rows = cellCount[0],
+            columns = cellCount[1],
+            width = cellSize[0],
+            height = cellSize[1],
+            textureFilename = imageFileName,
+            dataFilename = jsonFileName,
+            dataFormat = SpriteSheetDataFormat.JSON_ARRAY,
+            filenameFormat = "{tag}_{frame}.{extension}",
+            tag = tag.name,
+            listLayers = false,
+            listTags = false,
+            listSlices = false
+        }
+        
         -- ##########################################################################
         -- scale png sheets (open as Aseprite file, resize and close)
         -- ##########################################################################
         
-        local sprite = app.open(fn .. '.png')
-        sprite:resize(sprite.width * scaleFactor,sprite.height * scaleFactor)
-        local resizeFileName = sprite.filename
-        local resizeFileNamePath = path  .. resizeFileName 
-        
-        app.command.SaveFile(fn .. '.png')
-        app.command.CloseFile(fn .. '.png')
+        if imageCheck then
+            local sprite = app.open(imageFileName)
+            sprite:resize(sprite.width * scaleFactor,sprite.height * scaleFactor)
+            local resizeFileName = sprite.filename
+            local resizeFileNamePath = path  .. resizeFileName 
+            
+            app.command.SaveFile(imageFileName)
+            app.command.CloseFile(imageFileName)
+        end
 
-        
         -- ##########################################################################
         -- scale json sheets (decode saved json and multiply the "frame" key values by the scale)
         -- ##########################################################################
         
-        if jsonWrite then
+        if jsonCheck then
             -- 1. get all the values of the key "frame". Those are dicts containing "frame" key
-            local dataTable = decodeFileIntoTable(fn .. '.json')
+            local dataTable = decodeFileIntoTable(jsonFileName)
             local framesKeyTable = dataTable["frames"]
             
             -- 2. get all the values of the key "frame", which are x, y, w and h, multiply them by the scale
@@ -118,7 +113,7 @@ function exportFunc(scaleFactor, jsonWrite, sheetType, cellCount, cellSize, file
             -- 4. save the json with those updated values
             local json_as_string = json.encode_pretty(json, dataTable)
             
-            local myFilePath= fn .. '.json'
+            local myFilePath= jsonFileName
             local newFile = io.open(myFilePath, "w")  -- "w" for writing mode
             newFile.write(newFile, json_as_string)
             newFile.close(newFile)
@@ -222,11 +217,14 @@ dlg:number {
 
 dlg:tab {id = "tabOutput", text = "Output"}
 
+dlg:newrow()
+
 dlg:check {
     id="outputCheck",
     label="Output File",
     onclick=function ()
         dlg:modify{id="outputFilePath", visible=(dlg.data.outputCheck) }
+        dlg:modify{id="exportButton", enabled= dlg.data.jsonCheck or dlg.data.outputCheck }
     end
 }
 
@@ -237,9 +235,22 @@ dlg:file {
     visible=false
 }
 
+dlg:newrow()
+
 dlg:check {
-    id="jsonWrite",
-    label="JSON Data: "
+    id="jsonCheck",
+    label="JSON Data: ",
+    onclick=function ()
+        dlg:modify{id="jsonFilePath", visible=dlg.data.jsonCheck }
+        dlg:modify{id="exportButton", enabled= dlg.data.jsonCheck or dlg.data.outputCheck }
+    end
+}
+
+dlg:file {
+    id="jsonFilePath",
+    filetypes={},
+    filename = title,
+    visible=false
 }
 
 dlg:endtabs{
@@ -248,8 +259,9 @@ dlg:endtabs{
 }
 
 dlg:button {
-    id="myButtonId",
+    id="exportButton",
     text="Export Sheets",
+    enabled=false,
     onclick=function()
         local dlgData = dlg.data
         local cellCount = {}
@@ -268,7 +280,7 @@ dlg:button {
             cellSize[1] = dlgData.sizeY
         end
 
-        exportFunc(dlgData.scaleId, dlgData.jsonWrite, sheetTypeValue, cellCount, cellSize, dlgData.outputFilePath)
+        exportFunc(dlgData.scaleId, sheetTypeValue, cellCount, cellSize, dlgData.outputCheck, dlgData.outputFilePath, dlgData.jsonCheck, dlgData.jsonFilePath)
     end
 }
 
