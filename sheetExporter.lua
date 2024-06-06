@@ -30,9 +30,14 @@ function decodeFileIntoTable(path)
 end
 
 
-function exportFunc(scaleFactor, jsonWrite, sheetType, cellCount, cellSize)
+function exportFunc(scaleFactor, jsonWrite, sheetType, cellCount, cellSize, filePath)
+    local root = path .. title
+    if filePath then
+        root = filePath
+    end
+
     for i,tag in ipairs(spr.tags) do   -- is like python's enumerate
-        local fn = path  .. title .. '_' .. tag.name 
+        local fn = root .. '_' .. tag.name 
 
         if jsonWrite then
             app.command.ExportSpriteSheet{
@@ -218,6 +223,21 @@ dlg:number {
 dlg:tab {id = "tabOutput", text = "Output"}
 
 dlg:check {
+    id="outputCheck",
+    label="Output File",
+    onclick=function ()
+        dlg:modify{id="outputFilePath", visible=(dlg.data.outputCheck) }
+    end
+}
+
+dlg:file {
+    id="outputFilePath",
+    filetypes={},
+    filename = title,
+    visible=false
+}
+
+dlg:check {
     id="jsonWrite",
     label="JSON Data: "
 }
@@ -248,7 +268,7 @@ dlg:button {
             cellSize[1] = dlgData.sizeY
         end
 
-        exportFunc(dlgData.scaleId, dlgData.jsonWrite, sheetTypeValue, cellCount, cellSize)
+        exportFunc(dlgData.scaleId, dlgData.jsonWrite, sheetTypeValue, cellCount, cellSize, dlgData.outputFilePath)
     end
 }
 
