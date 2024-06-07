@@ -221,7 +221,7 @@ dlg:newrow()
 
 dlg:check {
     id="outputCheck",
-    label="Output File",
+    label="Output File:",
     onclick=function ()
         dlg:modify{id="outputFilePath", visible=(dlg.data.outputCheck) }
         dlg:modify{id="exportButton", enabled= dlg.data.jsonCheck or dlg.data.outputCheck }
